@@ -1,0 +1,12 @@
+setupos-forge
+Copyright 2026 swiss-subnet
+
+This product includes logic reimplemented in Go from the Internet Computer
+project (https://github.com/dfinity/ic), which is licensed under the Apache
+License, Version 2.0.
+
+No upstream source is copied verbatim. The test vectors in pkg/deterministic
+and pkg/config are the expected values asserted by upstream's own tests, and
+are reproduced so that any divergence from upstream behaviour fails the build.
+
+See UPSTREAM.md for the pinned commit and the list of mirrored files.

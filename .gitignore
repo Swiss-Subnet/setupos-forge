@@ -1,0 +1,10 @@
+result
+result-*
+/setupos-forge
+
+*.pem
+*.img
+*.tar.zst
+.release-cache
+
+/dist/

@@ -1,0 +1,58 @@
+name: ci
+
+# The nix image so CI gets the same sgdisk, mtools and e2fsprogs as the
+# devshell. Without them the e2e tests skip, and a skipped test reads as a
+# passing one. Actions pinned by commit, since tags move.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: nixos/nix:latest
+    env:
+      NIX_CONFIG: "experimental-features = nix-command flakes"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # checkout leaves the tree owned by another uid, so git refuses to read
+      # it, and flake evaluation needs git to see the tracked files.
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: gofmt
+        run: |
+          nix develop --command sh -c '
+            unformatted=$(gofmt -l .)
+            if [ -n "$unformatted" ]; then
+              echo "$unformatted"
+              exit 1
+            fi'
+
+      - name: vet
+        run: nix develop --command go vet ./...
+
+      - name: test
+        run: nix develop --command go test ./...
+
+      - name: nix build
+        run: nix build .#setupos-forge
+
+      - name: the binary runs
+        run: ./result/bin/setupos-forge version
+
+  dist:
+    runs-on: ubuntu-latest
+    container:
+      image: nixos/nix:latest
+    env:
+      NIX_CONFIG: "experimental-features = nix-command flakes"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # git describe needs tags
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - run: nix develop --command just dist
