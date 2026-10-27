@@ -1,8 +1,10 @@
 name: ci
 
-# The nix image so CI gets the same sgdisk, mtools and e2fsprogs as the
-# devshell. Without them the e2e tests skip, and a skipped test reads as a
-# passing one. Actions pinned by commit, since tags move.
+# Everything runs through `nix develop`, so CI gets the same go, sgdisk,
+# mtools and e2fsprogs as a local shell. Without those the e2e tests skip
+# themselves, and a skipped test reads as a passing one.
+#
+# Actions are pinned by commit. Tags move.
 
 on:
   push:
@@ -12,16 +14,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    container:
-      image: nixos/nix:latest
-    env:
-      NIX_CONFIG: "experimental-features = nix-command flakes"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      # checkout leaves the tree owned by another uid, so git refuses to read
-      # it, and flake evaluation needs git to see the tracked files.
-      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # 31.11.3
 
       - name: gofmt
         run: |
@@ -46,13 +41,8 @@ jobs:
 
   dist:
     runs-on: ubuntu-latest
-    container:
-      image: nixos/nix:latest
-    env:
-      NIX_CONFIG: "experimental-features = nix-command flakes"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0 # git describe needs tags
-      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # 31.11.3
+
       - run: nix develop --command just dist
